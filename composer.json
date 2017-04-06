@@ -34,11 +34,5 @@
             "dev-master": "1.x-dev"
         }
     },
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type" : "git",
-            "url" : "https://github.com/symfony/cache.git"
-        }
-    ]
+    "prefer-stable": true
 }
