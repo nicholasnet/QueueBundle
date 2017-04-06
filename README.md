@@ -44,7 +44,36 @@ QueueBundle supports Symfony 2.8, 3.0 and above.
 <a name="configuration"></a>
 ### Configuration
 
-In `config.yml` you can define configurations for each of the queue drivers that are included with the bundle, which includes a database, [Beanstalkd](https://kr.github.io/beanstalkd/), [Amazon SQS](https://aws.amazon.com/sqs/), [Redis](http://redis.io),  and a synchronous driver that will execute jobs immediately (for local use). A `null` queue driver is also included which simply discards queued jobs.
+Once you install the bundle you will need to make change in your `AppKernel.php` by adding the bundle class entry like this.
+
+    <?php
+    
+    use Symfony\Component\HttpKernel\Kernel;
+    use Symfony\Component\Config\Loader\LoaderInterface;
+
+    class AppKernel extends Kernel
+    {
+        public function registerBundles()
+        {
+            $bundles = array(
+                new Symfony\Bundle\FrameworkBundle\FrameworkBundle(),
+                new Symfony\Bundle\SecurityBundle\SecurityBundle(),
+                new Symfony\Bundle\TwigBundle\TwigBundle(),
+                new Symfony\Bundle\MonologBundle\MonologBundle(),
+                new Symfony\Bundle\SwiftmailerBundle\SwiftmailerBundle(),
+                new Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
+                new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
+                new IdeasBucket\QueueBundle\IdeasBucketQueueBundle(), // ADD THIS
+                new AppBundle\AppBundle(),
+            );
+
+            ....
+
+            return $bundles;
+        }
+    }
+
+Then in `config.yml` you can define configurations for each of the queue drivers that are included with the bundle, which includes a database, [Beanstalkd](https://kr.github.io/beanstalkd/), [Amazon SQS](https://aws.amazon.com/sqs/), [Redis](http://redis.io),  and a synchronous driver that will execute jobs immediately (for local use). A `null` queue driver is also included which simply discards queued jobs.
     
 Basic minimal configuration that is needed for QueueBundle is to configure `cache_handler`. Basically it can be any service that implements any one of these interfaces.
      
