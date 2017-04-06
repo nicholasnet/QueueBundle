@@ -117,7 +117,7 @@ Full configuration for QueueBundle is following.
             beanstalkd:
                 driver: beanstalkd
                 host: localhost
-                port: ~
+                port: 11300
                 persistent: ~
                 queue: default
                 retry_after: 90
