@@ -89,7 +89,7 @@ class Listener
     }
 
     /**
-     * Get the Artisan binary.
+     * Get the console binary.
      *
      * @return string
      */

@@ -46,5 +46,6 @@ class QueueStopCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->switchInterface->turnOn(Manager::LOCK_NAME);
+        $output->writeln('Queue worker stopped successfully');
     }
 }

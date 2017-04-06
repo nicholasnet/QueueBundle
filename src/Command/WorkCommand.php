@@ -102,7 +102,6 @@ class WorkCommand extends Command
              ->setDescription('Start processing jobs on the queue as a daemon')
              ->addArgument('connection', InputArgument::OPTIONAL, 'The name of connection', 'null')
              ->addOption('queue', null, InputOption::VALUE_OPTIONAL, 'The queue to listen on', null)
-             ->addOption('daemon', null, InputOption::VALUE_NONE, 'Run the worker in daemon mode')
              ->addOption('once', null, InputOption::VALUE_NONE, 'Only process the next job on the queue')
              ->addOption('delay', null, InputOption::VALUE_OPTIONAL, 'Amount of time to delay failed jobs', 0)
              ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Seconds a job may run before timing out', 60)
