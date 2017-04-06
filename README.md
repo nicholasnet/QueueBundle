@@ -30,7 +30,7 @@
 <a name="introduction"></a>
 ## Introduction
 
-**This QueueBundle is heavily inspired by __Laravel Queue__ package. In fact some of the file are directly copied over. So, hats of to __Taylor Otwell__ and __Laravel team__ for providing an awesome package for the community.**
+**This QueueBundle is heavily inspired by __Laravel Queue__ package. In fact some of the file are directly copied over. So, hats off to __Taylor Otwell__ and __Laravel team__ for providing an awesome package for the community.**
 
 <a name="installation"></a>
 ### Installation
@@ -58,7 +58,7 @@ For cache handler you can define service like this.
     app.cache:
         app: ANY_CACHE_ADAPTER
         
-If possible recommend PSR-16 cache interface.        
+If possible we recommend PSR-16 cache interface.        
 
 You can use any cache adapter here. For more information regarding cache handler please visit [here](http://symfony.com/blog/new-in-symfony-3-1-cache-component) or [here](http://stackoverflow.com/questions/8893081/how-to-cache-in-symfony-2) . 
 
