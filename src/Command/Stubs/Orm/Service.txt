@@ -1,0 +1,4 @@
+app.repository.queue:
+    class: {{namespace}}\{{className}}Repository
+    factory: ['@doctrine.orm.entity_manager', getRepository]
+    arguments: [{{namespace}}\{{className}}]

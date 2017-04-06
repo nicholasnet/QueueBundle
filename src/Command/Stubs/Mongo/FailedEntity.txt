@@ -1,0 +1,169 @@
+<?php
+
+namespace {{namespace}};
+
+use IdeasBucket\QueueBundle\Entity\FailedJobEntityInterface as EntityInterface;
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ *
+ * @ODM\Document(
+ *     collection="{{tableName}}",
+ *     repositoryClass="{{namespace}}\{{className}}Repository"
+ * )
+ */
+class {{className}} implements EntityInterface
+{
+    /**
+     * @var int
+     *
+     * @ODM\Id
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ODM\Field(type="string", nullable=true)
+     */
+    private $connection;
+
+    /**
+     * @var string
+     *
+     * @ODM\Field(type="string", nullable=true)
+     */
+    private $queue;
+
+    /**
+     * @var array
+     *
+     * @ODM\Field(type="hash")
+     */
+    private $payload;
+
+    /**
+     * @var int
+     *
+     * @ODM\Field(type="string", nullable=true)
+     */
+    private $exception;
+
+    /**
+     * @var \DateTime
+     *
+     * @ODM\Field(name="failed_at", type="date", nullable=false)
+     */
+    private $failedAt;
+
+    /**
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param $payload
+     *
+     * @return EntityInterface
+     */
+    public function setPayload($payload)
+    {
+        $this->payload = $payload;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPayload()
+    {
+        return $this->payload;
+    }
+
+    /**
+     * @return string
+     */
+    public function getQueue()
+    {
+        return $this->queue;
+    }
+
+    /**
+     * @return int
+     */
+    public function getException()
+    {
+        return $this->exception;
+    }
+
+    /**
+     * @param int $exception
+     *
+     * @return EntityInterface
+     */
+    public function setException($exception)
+    {
+        $this->exception = $exception;
+
+        return $this;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getFailedAt()
+    {
+        return $this->failedAt;
+    }
+
+    /**
+     * @param string $connection
+     *
+     * @return EntityInterface
+     */
+    public function setConnection($connection)
+    {
+        $this->connection = $connection;
+
+        return $this;
+    }
+
+    /**
+     * @param string $queue
+     *
+     * @return EntityInterface
+     */
+    public function setQueue($queue)
+    {
+        $this->queue = $queue;
+
+        return $this;
+    }
+
+    /**
+     * @param \DateTime $failedAt
+     *
+     * @return EntityInterface
+     */
+    public function setFailedAt(\DateTime $failedAt)
+    {
+        $this->failedAt = $failedAt;
+
+        return $this;
+    }
+}

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service id="ideasbucket_queue.command.work" class="IdeasBucket\QueueBundle\Command\WorkCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue.worker"/>
+            <argument type="service" id="ideasbucket_queue.switch_service"/>
+            <argument type="service" id="event_dispatcher"/>
+            <argument type="service" id="ideasbucket_queue.cache"/>
+            <argument>%ideasbucket_queue.configuration%</argument>
+            <call method="setFailedJobLogger">
+                <argument on-invalid="ignore" type="service" id="ideasbucket_queue.failed_repository" />
+            </call>
+        </service>
+        <service id="ideasbucket_queue.command.restart" class="IdeasBucket\QueueBundle\Command\RestartCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue.cache"/>
+        </service>
+        <service id="ideasbucket_queue.command.listen" class="IdeasBucket\QueueBundle\Command\ListenCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue.listener"/>
+            <argument>%ideasbucket_queue.configuration%</argument>
+        </service>
+        <service id="ideasbucket_queue.command.retry" class="IdeasBucket\QueueBundle\Command\RetryCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue"/>
+            <argument on-invalid="ignore" type="service" id="ideasbucket_queue.failed_repository"/>
+        </service>
+        <service id="ideasbucket_queue.command.failed" class="IdeasBucket\QueueBundle\Command\ListFailedCommand">
+            <tag name="console.command"/>
+            <argument on-invalid="ignore" type="service" id="ideasbucket_queue.failed_repository"/>
+        </service>
+        <service id="ideasbucket_queue.command.forget" class="IdeasBucket\QueueBundle\Command\ForgetFailedCommand">
+            <tag name="console.command"/>
+            <argument on-invalid="ignore" type="service" id="ideasbucket_queue.failed_repository"/>
+        </service>
+        <service id="ideasbucket_queue.command.flush" class="IdeasBucket\QueueBundle\Command\FlushFailedCommand">
+            <tag name="console.command"/>
+            <argument on-invalid="ignore" type="service" id="ideasbucket_queue.failed_repository"/>
+        </service>
+        <service id="ideasbucket_queue.command.database" class="IdeasBucket\QueueBundle\Command\DatabaseCommand">
+            <tag name="console.command"/>
+            <argument>%kernel.cache_dir%</argument>
+            <argument type="service" id="kernel"/>
+        </service>
+        <service id="ideasbucket_queue.command.failed_database" class="IdeasBucket\QueueBundle\Command\FailedDatabaseCommand">
+            <tag name="console.command"/>
+            <argument>%kernel.cache_dir%</argument>
+            <argument type="service" id="kernel"/>
+        </service>
+        <service id="ideasbucket_queue.command.job_generate" class="IdeasBucket\QueueBundle\Command\GenerateCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="file_locator"/>
+            <argument type="service" id="kernel"/>
+        </service>
+        <service id="ideasbucket_queue.command.worker_start" class="IdeasBucket\QueueBundle\Command\QueueStartCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue.switch_service"/>
+        </service>
+        <service id="ideasbucket_queue.command.worker_stop" class="IdeasBucket\QueueBundle\Command\QueueStopCommand">
+            <tag name="console.command"/>
+            <argument type="service" id="ideasbucket_queue.switch_service"/>
+        </service>
+    </services>
+</container>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service id="ideasbucket_queue.exception_handler" class="IdeasBucket\QueueBundle\Exception\ErrorHandler">
+            <argument type="service" id="logger" on-invalid="ignore"/>
+        </service>
+        <service id="ideasbucket_queue.listener" class="IdeasBucket\QueueBundle\Listener" public="false">
+            <argument>%ideasbucket_queue.command_path%</argument>
+        </service>
+        <service id="ideasbucket_queue" class="IdeasBucket\QueueBundle\Manager">
+            <argument type="service" id="service_container"/>
+            <argument>%ideasbucket_queue.configuration%</argument>
+            <argument type="service" id="event_dispatcher"/>
+            <argument type="service" id="ideasbucket_queue.switch_service"/>
+        </service>
+        <service id="ideasbucket_queue.worker" class="IdeasBucket\QueueBundle\Worker" public="false">
+            <argument type="service" id="ideasbucket_queue"/>
+            <argument type="service" id="event_dispatcher"/>
+            <argument type="service" id="ideasbucket_queue.exception_handler"/>
+        </service>
+        <service id="ideasbucket_queue.cache" class="IdeasBucket\QueueBundle\Util\CacheAdapter" public="false">
+            <argument type="expression">service(parameter('ideasbucket_queue.cache_driver'))</argument>
+        </service>
+    </services>
+</container>

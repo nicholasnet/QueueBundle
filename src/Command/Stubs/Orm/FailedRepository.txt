@@ -1,0 +1,85 @@
+<?php
+
+namespace {{namespace}};
+
+use IdeasBucket\QueueBundle\Entity\FailedJobEntityInterface as EntityInterface;
+use IdeasBucket\QueueBundle\Repository\FailedJobRepositoryInterface as RepositoryInterface;
+use Doctrine\ORM\EntityRepository;
+
+/**
+ * Class {{className}}Repository
+ *
+ * @package {{namespace}}
+ */
+class {{className}}Repository  extends EntityRepository implements RepositoryInterface
+{
+    /**
+     * @inheritDoc
+     */
+    public function log($connectionName, $queue, $rawBody, \Exception $exception)
+    {
+        /** @var EntityInterface $entity */
+        $entity = new {{className}};
+
+        $entity->setConnection($connectionName)
+               ->setQueue($queue)
+               ->setException($exception->getMessage())
+               ->setPayload($rawBody)
+               ->setFailedAt(new \DateTime);
+
+        $em = $this->getEntityManager();
+        $em->persist($entity);
+        $em->flush();
+        $em->clear();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function findByIds(array $ids)
+    {
+        return $this->getEntityManager()
+                    ->createQueryBuilder()
+                    ->select('f')
+                    ->from('{{bundleName}}:{{className}}', 'f')
+                    ->where('f.id IN (:ids)')
+                    ->setParameter('ids', $ids)
+                    ->getQuery()
+                    ->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function forget(EntityInterface $failedJob)
+    {
+        $em = $this->getEntityManager();
+        $entity = $em->merge($failedJob);
+        $em->getConnection()->beginTransaction(); // suspend auto-commit
+
+        try {
+
+            $em->remove($entity);
+            $em->flush();
+            $em->getConnection()->commit();
+
+        } catch (\Exception $e) {
+
+            $em->getConnection()->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function flush()
+    {
+        $isDeleted = $this->createQueryBuilder('{{bundleName}}:{{className}}')
+                          ->delete()
+                          ->getQuery()
+                          ->execute();
+
+        return $isDeleted;
+    }
+}

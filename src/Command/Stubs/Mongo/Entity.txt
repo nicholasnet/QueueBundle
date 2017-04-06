@@ -1,0 +1,216 @@
+<?php
+
+namespace {{namespace}};
+
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
+use IdeasBucket\QueueBundle\Entity\DatabaseQueueEntityInterface as EntityInterface;
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ *
+ * @ODM\Document(
+ *     collection="{{tableName}}",
+ *     repositoryClass="{{namespace}}\{{className}}Repository"
+ * )
+ */
+class {{className}} implements EntityInterface
+{
+    /**
+     * @var int
+     *
+     * @ODM\Id
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ODM\Field(type="string", nullable=false) @ODM\Index
+     */
+    private $queue;
+
+    /**
+     * @var array
+     *
+     * @ODM\Field(type="hash")
+     */
+    private $payload;
+
+    /**
+     * @var int
+     *
+     * @ODM\Field(type="int", nullable=false)
+     */
+    private $attempts = 0;
+
+    /**
+     * @var int
+     *
+     * @ODM\Field(type="int", nullable=false, name="reserved_at") @ODM\Index
+     */
+    private $reservedAt;
+
+    /**
+     * @var int
+     *
+     * @ODM\Field(type="int", nullable=false, name="available_at") @ODM\Index
+     */
+    private $availableAt;
+
+    /**
+     * @var int
+     *
+     * @ODM\Field(type="int", nullable=false, name="created_at")
+     */
+    private $createdAt;
+
+    /**
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return string
+     */
+    public function getQueue()
+    {
+        return $this->queue;
+    }
+
+    /**
+     * @param string $queue
+     *
+     * @return EntityInterface
+     */
+    public function setQueue($queue)
+    {
+        $this->queue = $queue;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPayload()
+    {
+        return $this->payload;
+    }
+
+    /**
+     * @param array $payload
+     *
+     * @return EntityInterface
+     */
+    public function setPayload($payload)
+    {
+        $this->payload = $payload;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getAttempts()
+    {
+        return $this->attempts;
+    }
+
+    /**
+     * @param int $attempts
+     *
+     * @return EntityInterface
+     */
+    public function setAttempts($attempts)
+    {
+        $this->attempts = $attempts;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getReservedAt()
+    {
+        return $this->reservedAt;
+    }
+
+    /**
+     * @param int $reservedAt
+     *
+     * @return EntityInterface
+     */
+    public function setReservedAt($reservedAt)
+    {
+        $this->reservedAt = $reservedAt;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getAvailableAt()
+    {
+        return $this->availableAt;
+    }
+
+    /**
+     * @param int $availableAt
+     *
+     * @return EntityInterface
+     */
+    public function setAvailableAt($availableAt)
+    {
+        $this->availableAt = $availableAt;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
+    /**
+     * @param int $createdAt
+     *
+     * @return EntityInterface
+     */
+    public function setCreatedAt($createdAt)
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function touch()
+    {
+        $this->reservedAt = (new \DateTime)->getTimestamp();
+
+        return $this->reservedAt;
+    }
+
+    /**
+     * @return int
+     */
+    public function increment()
+    {
+        $this->attempts++;
+
+        return $this->attempts;
+    }
+}
