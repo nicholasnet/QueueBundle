@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service id="ideasbucket_queue.connector.sync" class="IdeasBucket\QueueBundle\Connector\SyncConnector" public="false">
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+        <service id="ideasbucket_queue.connector.beanstalkd" class="IdeasBucket\QueueBundle\Connector\BeanstalkdConnector" public="false">
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+        <service id="ideasbucket_queue.connector.sqs" class="IdeasBucket\QueueBundle\Connector\SqsConnector" public="false">
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+        <service id="ideasbucket_queue.connector.null" class="IdeasBucket\QueueBundle\Connector\NullConnector" public="false">
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+        <service id="ideasbucket_queue.connector.database" class="IdeasBucket\QueueBundle\Connector\DatabaseConnector" public="false">
+            <argument type="service" id="ideasbucket_queue.database_repository"  on-invalid="ignore"/>
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+        <service id="ideasbucket_queue.connector.redis" class="IdeasBucket\QueueBundle\Connector\RedisConnector" public="false">
+            <argument type="service" id="ideasbucket_queue.redis_client"  on-invalid="ignore"/>
+            <tag name="ideasbucket_queue.connector"/>
+        </service>
+    </services>
+</container>

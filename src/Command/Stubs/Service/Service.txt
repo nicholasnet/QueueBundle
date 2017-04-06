@@ -1,0 +1,2 @@
+{{serviceId}}:
+    class: {{namespace}}\{{className}}

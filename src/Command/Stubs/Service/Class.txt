@@ -1,0 +1,33 @@
+<?php
+
+namespace {{namespace}};
+
+use IdeasBucket\QueueBundle\QueueableInterface;
+use IdeasBucket\QueueBundle\Job\JobsInterface;
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ */
+class {{className}} implements QueueableInterface
+{
+    /**
+     * This job can be queued like this (assuming that you are inside the controller).
+     *
+     * $this->get('idb_queue')->push('{{serviceId}}', $data);
+     *
+     * OR If you want to use specific queue and connection then.
+     *
+     * $this->get('idb_queue')->push('{{serviceId}}', $data, 'some_queue', 'database');
+     *
+     * @param JobsInterface $job
+     * @param mixed         $data
+     */
+    public function fire(JobsInterface $job, $data = null)
+    {
+        // TODO: Implement fire() method.
+
+        $job->delete(); // If you want to put job back into the queue then $job->release();
+    }
+}

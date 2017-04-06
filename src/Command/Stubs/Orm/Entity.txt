@@ -1,0 +1,230 @@
+<?php
+
+namespace {{namespace}};
+
+use Doctrine\ORM\Mapping as ORM;
+use IdeasBucket\QueueBundle\Entity\DatabaseQueueEntityInterface as EntityInterface;
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ *
+ * @ORM\Table(name="{{tableName}}", indexes={@ORM\Index(name="{{tableName}}_queue_idx", columns={"queue"})})
+ * @ORM\Entity(repositoryClass="{{namespace}}\{{className}}Repository")
+ */
+
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ *
+ * @ORM\Table(name="{{tableName}}", indexes={
+ *     @ORM\Index(name="{{tableName}}_queue_idx", columns={"queue"}),
+ *     @ORM\Index(name="{{tableName}}_reserved_idx", columns={"reserved_at"}),
+ *     @ORM\Index(name="{{tableName}}_available_idx", columns={"available_at"}),
+ * })
+ * @ORM\Entity(repositoryClass="{{namespace}}\{{className}}Repository")
+ */
+class {{className}} implements EntityInterface
+{
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="id", type="bigint", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="queue", type="string", length=128, nullable=false)
+     */
+    private $queue;
+
+    /**
+     * @var array
+     *
+     * @ORM\Column(name="payload", type="json_array", nullable=true, length=4294967295)
+     */
+    private $payload;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="attempts", type="integer", nullable=false, options={"unsigned":true, "default":0})
+     */
+    private $attempts;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="reserved_at", type="integer", nullable=true, options={"unsigned":true})
+     */
+    private $reservedAt;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="available_at", type="integer", nullable=false, options={"unsigned":true})
+     */
+    private $availableAt;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="created_at", type="integer", nullable=false, options={"unsigned":true})
+     */
+    private $createdAt;
+
+    /**
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return string
+     */
+    public function getQueue()
+    {
+        return $this->queue;
+    }
+
+    /**
+     * @param string $queue
+     *
+     * @return EntityInterface
+     */
+    public function setQueue($queue)
+    {
+        $this->queue = $queue;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPayload()
+    {
+        return $this->payload;
+    }
+
+    /**
+     * @param array $payload
+     *
+     * @return EntityInterface
+     */
+    public function setPayload($payload)
+    {
+        $this->payload = $payload;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getAttempts()
+    {
+        return $this->attempts;
+    }
+
+    /**
+     * @param int $attempts
+     *
+     * @return EntityInterface
+     */
+    public function setAttempts($attempts)
+    {
+        $this->attempts = $attempts;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getReservedAt()
+    {
+        return $this->reservedAt;
+    }
+
+    /**
+     * @param int $reservedAt
+     *
+     * @return EntityInterface
+     */
+    public function setReservedAt($reservedAt)
+    {
+        $this->reservedAt = $reservedAt;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getAvailableAt()
+    {
+        return $this->availableAt;
+    }
+
+    /**
+     * @param int $availableAt
+     *
+     * @return EntityInterface
+     */
+    public function setAvailableAt($availableAt)
+    {
+        $this->availableAt = $availableAt;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
+    /**
+     * @param int $createdAt
+     *
+     * @return EntityInterface
+     */
+    public function setCreatedAt($createdAt)
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    /**
+     * @return \DateTime|int
+     */
+    public function touch()
+    {
+        $this->reservedAt = (new \DateTime)->getTimestamp();
+
+        return $this->reservedAt;
+    }
+
+    /**
+     * @return int
+     */
+    public function increment()
+    {
+        $this->attempts++;
+
+        return $this->attempts;
+    }
+}

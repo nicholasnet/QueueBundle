@@ -1,0 +1,169 @@
+<?php
+
+namespace {{namespace}};
+
+use IdeasBucket\QueueBundle\Entity\FailedJobEntityInterface as EntityInterface;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * Class {{className}}
+ *
+ * @package {{namespace}}
+ *
+ * @ORM\Table(name="{{tableName}}")
+ * @ORM\Entity(repositoryClass="{{namespace}}\{{className}}Repository")
+ */
+class {{className}} implements EntityInterface
+{
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="id", type="bigint", options={"unsigned":true})
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="connection", type="string", length=128, nullable=false)
+     */
+    private $connection;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="queue", type="string", length=128, nullable=false)
+     */
+    private $queue;
+
+    /**
+     * @var array
+     *
+     * @ORM\Column(name="payload", type="json_array", nullable=true, length=4294967295)
+     */
+    private $payload;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="exception", type="string", nullable=true, length=4294967295)
+     */
+    private $exception;
+
+    /**
+     * @var \DateTime
+     *
+     * @ORM\Column(name="failed_at", type="datetime", nullable=false)
+     */
+    private $failedAt;
+
+    /**
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param $payload
+     *
+     * @return EntityInterface
+     */
+    public function setPayload($payload)
+    {
+        $this->payload = $payload;
+
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPayload()
+    {
+        return $this->payload;
+    }
+
+    /**
+     * @return string
+     */
+    public function getQueue()
+    {
+        return $this->queue;
+    }
+
+    /**
+     * @return int
+     */
+    public function getException()
+    {
+        return $this->exception;
+    }
+
+    /**
+     * @param int $exception
+     *
+     * @return EntityInterface
+     */
+    public function setException($exception)
+    {
+        $this->exception = $exception;
+
+        return $this;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getFailedAt()
+    {
+        return $this->failedAt;
+    }
+
+    /**
+     * @param string $connection
+     *
+     * @return EntityInterface
+     */
+    public function setConnection($connection)
+    {
+        $this->connection = $connection;
+
+        return $this;
+    }
+
+    /**
+     * @param string $queue
+     *
+     * @return EntityInterface
+     */
+    public function setQueue($queue)
+    {
+        $this->queue = $queue;
+
+        return $this;
+    }
+
+    /**
+     * @param \DateTime $failedAt
+     *
+     * @return EntityInterface
+     */
+    public function setFailedAt(\DateTime $failedAt)
+    {
+        $this->failedAt = $failedAt;
+
+        return $this;
+    }
+}

@@ -1,0 +1,71 @@
+<?php
+
+namespace {{namespace}};
+
+use IdeasBucket\QueueBundle\Entity\FailedJobEntityInterface as EntityInterface;
+use IdeasBucket\QueueBundle\Repository\FailedJobRepositoryInterface as RepositoryInterface;
+use Doctrine\ODM\MongoDB\DocumentRepository as BaseRepository;
+
+/**
+ * Class {{className}}Repository
+ *
+ * @package {{namespace}}
+ */
+class FailedRepository extends BaseRepository implements RepositoryInterface
+{
+    /**
+     * @inheritDoc
+     */
+    public function log($connectionName, $queue, $rawBody, \Exception $exception)
+    {
+        /** @var EntityInterface $entity */
+        $entity = new {{className}};
+
+        $entity->setConnection($connectionName)
+               ->setQueue($queue)
+               ->setException($exception->getMessage())
+               ->setPayload($rawBody)
+               ->setFailedAt(new \DateTime);
+
+        $this->dm->persist($entity);
+        $this->dm->flush();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function findByIds(array $ids)
+    {
+        $cursor = $this->dm->createQueryBuilder('{{bundleName}}:{{className}}')
+                           ->setQueryArray(['_id' => ['$in' => $ids]])
+                           ->getQuery()->execute();
+
+        $result = [];
+
+        foreach ($cursor as $job) {
+
+            $result[] = $job;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function forget(EntityInterface $failedJob)
+    {
+        $dm = $this->dm;
+        $entity = $dm->merge($failedJob);
+        $dm->remove($entity);
+        $dm->flush();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function flush()
+    {
+        return $this->dm->createQueryBuilder('{{bundleName}}:{{className}}')->remove()->getQuery()->execute();
+    }
+}
