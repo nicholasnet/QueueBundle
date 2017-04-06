@@ -105,7 +105,7 @@ Full configuration for QueueBundle is following.
 
 Before getting started with QueueBundle, it is important to understand the distinction between "connections" and "queues". In your `config.yml` you can define configuration for `connections`. This option defines a particular connection to a backend service such as Amazon SQS, Beanstalk, or Redis. However, any given queue connection may have multiple "queues" which may be thought of as different stacks or piles of queued jobs.
 
-Note that each connection configuration example in the `queue` configuration file contains a `queue` attribute. This is the default queue that jobs will be dispatched to when they are sent to a given connection. In other words, if you dispatch a job without explicitly defining which queue it should be dispatched to, the job will be placed on the queue that is defined in the `queue` attribute of the connection configuration:
+Note that each connection configuration example in the `config.yml` configuration file contains a `queue` attribute. This is the default queue that jobs will be dispatched to when they are sent to a given connection. In other words, if you dispatch a job without explicitly defining which queue it should be dispatched to, the job will be placed on the queue that is defined in the `queue` attribute of the connection configuration:
 
     // This job is sent to the default queue...
     $this->get('idb_queue')->push('service_id');
@@ -126,9 +126,9 @@ In order to use the `database` queue driver, you will need a run a following com
 
     php console idb_queue:database
     
-This will generate the necessary files in your `cache/output` folder, which you will need to move to appropriate location. Then define a service which definition will be shown during command run.
+This will generate the necessary files in your `cache/output` folder, which you will need to move to appropriate location. Then define a service which definition will be shown during end of the command run.
      
-Command assumes that you are running Doctrine with annotation config. If you are using any other format for configuration then you will have to make necessary adjustment in generated code. 
+Command assumes that you are running Doctrine (ORM or ODM) with annotation config. If you are using any other configuration format then you will have to make necessary adjustment in generated code. 
 
 Furthermore if you want to use **relational database** then you will need `"doctrine/orm"` if you want to use **MongoDB** then you will need `"doctrine/mongodb-odm"` and `"doctrine/mongodb-odm-bundle"`. 
 
@@ -155,7 +155,7 @@ The following dependencies are needed for the listed queue drivers:
 <a name="generating-job-classes"></a>
 ### Generating Job Classes
 
-Every Job is basically a service that implements `IdeasBucket\QueueBundleQueueableInterface`. QueueBundle provides command for generating a job.
+Every Job is basically a service that implements `IdeasBucket\QueueBundle\QueueableInterface`. QueueBundle provides command for generating a job.
 
     php console idb_queue:create_job
 
