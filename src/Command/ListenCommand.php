@@ -4,7 +4,7 @@ namespace IdeasBucket\QueueBundle\Command;
 
 use IdeasBucket\QueueBundle\Listener;
 use IdeasBucket\QueueBundle\ListenerOptions;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
  *
  * @package IdeasBucket\QueueBundle\Command
  */
-class ListenCommand extends Command
+class ListenCommand extends ContainerAwareCommand
 {
     /**
      * Listener which listens for the incoming job.
@@ -54,7 +54,6 @@ class ListenCommand extends Command
              ->addArgument('connection', InputArgument::OPTIONAL, 'The name of connection')
              ->addOption('queue', null, InputOption::VALUE_OPTIONAL, 'The queue to listen on', null)
              ->addOption('delay', null, InputOption::VALUE_OPTIONAL, 'Amount of time to delay failed jobs', 0)
-             ->addOption('env', null, InputOption::VALUE_OPTIONAL, 'Environment that we need to run in', null)
              ->addOption('memory', null, InputOption::VALUE_OPTIONAL, 'The memory limit in megabytes', 128)
              ->addOption('timeout', null, InputOption::VALUE_OPTIONAL, 'Seconds a job may run before timing out', 60)
              ->addOption('sleep', null, InputOption::VALUE_OPTIONAL, 'Seconds to wait before checking queue for jobs', 3)
@@ -134,7 +133,7 @@ class ListenCommand extends Command
     protected function gatherOptions(InputInterface $input)
     {
         return new ListenerOptions(
-            $input->getOption('env'),
+            $this->getContainer()->getParameter('kernel.environment'),
             $input->getOption('delay'),
             $input->getOption('memory'),
             $input->getOption('timeout'),
