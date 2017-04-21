@@ -193,7 +193,7 @@ The generated class will be inside `Job` folder inside the bundle that you chose
 <a name="class-structure"></a>
 ### Job Structure
 
-Job classes are very simple, it simply implements Queueable interface containing only a `handle` method which is called when the job is processed by the queue. To get started, let's take a look at an example job class. In this example, we'll send email using queue:
+Job classes are very simple, it simply implements Queueable interface containing only a `fire` method which is called when the job is processed by the queue. To get started, let's take a look at an example job class. In this example, we'll send email using queue:
 
     <?php
 
