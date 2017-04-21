@@ -100,7 +100,7 @@ class WorkCommand extends Command
     {
         $this->setName('idb_queue:work')
              ->setDescription('Start processing jobs on the queue as a daemon')
-             ->addArgument('connection', InputArgument::OPTIONAL, 'The name of connection', 'null')
+             ->addArgument('connection', InputArgument::OPTIONAL, 'The name of connection')
              ->addOption('queue', null, InputOption::VALUE_OPTIONAL, 'The queue to listen on', null)
              ->addOption('once', null, InputOption::VALUE_NONE, 'Only process the next job on the queue')
              ->addOption('delay', null, InputOption::VALUE_OPTIONAL, 'Amount of time to delay failed jobs', 0)
