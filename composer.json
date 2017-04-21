@@ -23,8 +23,7 @@
         "pda/pheanstalk": "~3.0",
         "phpunit/phpunit": "~5.7",
         "predis/predis": "~1.0",
-        "mockery/mockery": "~0.9.4",
-        "stomp-php/stomp-php": "4.*"
+        "mockery/mockery": "~0.9.4"
     },
     "autoload": {
         "psr-4": { "IdeasBucket\\QueueBundle\\": "src" }
