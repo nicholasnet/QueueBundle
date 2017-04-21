@@ -15,6 +15,7 @@
             <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="ideasbucket_queue.switch_service"/>
         </service>
+        <service id="idb_queue" alias="ideasbucket_queue"></service>
         <service id="ideasbucket_queue.worker" class="IdeasBucket\QueueBundle\Worker" public="false">
             <argument type="service" id="ideasbucket_queue"/>
             <argument type="service" id="event_dispatcher"/>
