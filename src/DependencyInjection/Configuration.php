@@ -130,6 +130,7 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('host')->end()
                         ->scalarNode('repository')->end()
                         ->scalarNode('prefix')->end()
+                        ->scalarNode('endpoint')->end()
                         ->integerNode('timeout')->end()
                         ->integerNode('port')->end()
                     ->end()
