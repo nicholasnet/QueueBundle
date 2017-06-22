@@ -56,6 +56,13 @@ class Worker
     protected $paused = false;
 
     /**
+     * Indicates if the worker should exit.
+     *
+     * @var bool
+     */
+    public $shouldQuit = false;
+
+    /**
      * Create a new queue worker.
      *
      * @param Manager                  $manager
@@ -83,6 +90,14 @@ class Worker
         $lastRestart = $this->getTimestampOfLastQueueRestart();
 
         while (true) {
+            // Before reserving any jobs, we will make sure this queue is not paused and
+            // if it is we will just pause this worker for a given amount of time and
+            // make sure we do not need to kill this worker process off completely.
+            if (!$this->daemonShouldRun($options)) {
+                $this->pauseWorker($options, $lastRestart);
+
+                continue;
+            }
 
             // First, we will attempt to get the next job off of the queue. We will also
             // register the timeout handler and reset the alarm for this job so it is
@@ -94,26 +109,16 @@ class Worker
             // If the daemon should run (not in maintenance mode, etc.), then we can run
             // fire off this job for processing. Otherwise, we will need to sleep the
             // worker so no more jobs are processed until they should be processed.
-            if ($job && $this->daemonShouldRun($options)) {
-
+            if ($job) {
                 $this->runJob($job, $connectionName, $options);
-
             } else {
-
                 $this->sleep($options->sleep);
             }
 
             // Finally, we will check to see if we have exceeded our memory limits or if
             // the queue should restart based on other indications. If so, we'll stop
             // this worker and let whatever is "monitoring" it restart the process.
-            if ($this->memoryExceeded($options->memory)) {
-
-                $this->stop(12);
-
-            } elseif ($this->queueShouldRestart($lastRestart)) {
-
-                $this->stop();
-            }
+            $this->stopIfNecessary($options, $lastRestart);
         }
     }
 
@@ -143,16 +148,17 @@ class Worker
     protected function listenForSignals()
     {
         if ($this->supportsAsyncSignals()) {
-
             pcntl_async_signals(true);
 
-            pcntl_signal(SIGUSR2, function () {
+            pcntl_signal(SIGTERM, function () {
+                $this->shouldQuit = true;
+            });
 
+            pcntl_signal(SIGUSR2, function () {
                 $this->paused = true;
             });
 
             pcntl_signal(SIGCONT, function () {
-
                 $this->paused = false;
             });
         }
@@ -219,17 +225,18 @@ class Worker
      */
     protected function registerTimeoutHandler($job, WorkerOptions $options)
     {
-        if ($options->timeout > 0 && $this->supportsAsyncSignals()) {
+        $timeout = $this->timeoutForJob($job, $options);
+
+        if ($timeout > 0 && $this->supportsAsyncSignals()) {
 
             // We will register a signal handler for the alarm signal so that we can kill this
             // process if it is running too long because it has frozen. This uses the async
             // signals supported in recent versions of PHP to accomplish it conveniently.
             pcntl_signal(SIGALRM, function () {
-
                 $this->kill(1);
             });
 
-            pcntl_alarm($this->timeoutForJob($job, $options) + $options->sleep);
+            pcntl_alarm($timeout + $options->sleep);
         }
     }
 
@@ -270,20 +277,42 @@ class Worker
      */
     protected function daemonShouldRun(WorkerOptions $options)
     {
-        if (($this->manager->isDownForMaintenance() && !$options->force) ||
+        return (($this->manager->isDownForMaintenance() && !$options->force) ||
             $this->paused ||
             $this->until() === false
-        ) {
+        );
+    }
 
-            // If the application is down for maintenance or doesn't want the queues to run
-            // we will sleep for one second just in case the developer has it set to not
-            // sleep at all. This just prevents CPU from maxing out in this situation.
-            $this->sleep(1);
+    /**
+     * Pause the worker for the current loop.
+     *
+     * @param WorkerOptions $options
+     * @param int $lastRestart
+     * @return void
+     */
+    protected function pauseWorker(WorkerOptions $options, $lastRestart)
+    {
+        $this->sleep($options->sleep > 0 ? $options->sleep : 1);
 
-            return false;
+        $this->stopIfNecessary($options, $lastRestart);
+    }
+
+    /**
+     * Stop the process if necessary.
+     *
+     * @param WorkerOptions $options
+     * @param int $lastRestart
+     */
+    protected function stopIfNecessary(WorkerOptions $options, $lastRestart)
+    {
+        if ($this->shouldQuit) {
+            $this->kill();
         }
-
-        return true;
+        if ($this->memoryExceeded($options->memory)) {
+            $this->stop(12);
+        } elseif ($this->queueShouldRestart($lastRestart)) {
+            $this->stop();
+        }
     }
 
     /**
