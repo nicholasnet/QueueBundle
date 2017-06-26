@@ -121,9 +121,7 @@ class RedisQueue extends AbstractQueue implements QueueInterface
      */
     protected function laterRaw($delay, $payload, $queue = null)
     {
-        $this->redis->zadd(
-            $this->getQueue($queue) . ':delayed', $this->availableAt($delay), $payload
-        );
+        $this->redis->zadd($this->getQueue($queue) . ':delayed', $this->availableAt($delay), $payload);
 
         return ArrayHelper::get(json_decode($payload, true), 'id');
     }
@@ -134,7 +132,7 @@ class RedisQueue extends AbstractQueue implements QueueInterface
      * @param  string $job
      * @param  mixed  $data
      *
-     * @return string
+     * @return array
      */
     protected function createPayloadArray($job, $data = '')
     {

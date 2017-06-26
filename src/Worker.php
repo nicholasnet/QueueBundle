@@ -2,6 +2,7 @@
 
 namespace IdeasBucket\QueueBundle;
 
+use IdeasBucket\Common\Utils\StringHelper;
 use Psr\SimpleCache\CacheInterface as Cache;
 use IdeasBucket\QueueBundle\Event\EventsList;
 use IdeasBucket\QueueBundle\Event\JobFailed;
@@ -90,10 +91,12 @@ class Worker
         $lastRestart = $this->getTimestampOfLastQueueRestart();
 
         while (true) {
+
             // Before reserving any jobs, we will make sure this queue is not paused and
             // if it is we will just pause this worker for a given amount of time and
             // make sure we do not need to kill this worker process off completely.
             if (!$this->daemonShouldRun($options)) {
+
                 $this->pauseWorker($options, $lastRestart);
 
                 continue;
@@ -110,8 +113,11 @@ class Worker
             // fire off this job for processing. Otherwise, we will need to sleep the
             // worker so no more jobs are processed until they should be processed.
             if ($job) {
+
                 $this->runJob($job, $connectionName, $options);
+
             } else {
+
                 $this->sleep($options->sleep);
             }
 
@@ -123,68 +129,112 @@ class Worker
     }
 
     /**
-     * @return Manager
-     */
-    public function getManager()
-    {
-        return $this->manager;
-    }
-
-    /**
-     * @param Manager $manager
+     * Register the worker timeout handler (PHP 7.1+).
      *
-     * @return Worker
+     * @param  JobsInterface|null $job
+     * @param  WorkerOptions      $options
      */
-    public function setManager($manager)
-    {
-        $this->manager = $manager;
-
-        return $this;
-    }
-
-    /**
-     * Enable async signals for the process.
-     */
-    protected function listenForSignals()
+    protected function registerTimeoutHandler($job, WorkerOptions $options)
     {
         if ($this->supportsAsyncSignals()) {
-            pcntl_async_signals(true);
 
-            pcntl_signal(SIGTERM, function () {
-                $this->shouldQuit = true;
+            // We will register a signal handler for the alarm signal so that we can kill this
+            // process if it is running too long because it has frozen. This uses the async
+            // signals supported in recent versions of PHP to accomplish it conveniently.
+            pcntl_signal(SIGALRM, function () {
+
+                $this->kill(1);
             });
 
-            pcntl_signal(SIGUSR2, function () {
-                $this->paused = true;
-            });
-
-            pcntl_signal(SIGCONT, function () {
-                $this->paused = false;
-            });
+            $timeout = $this->timeoutForJob($job, $options);
+            pcntl_alarm($timeout > 0 ? $timeout + $options->sleep : 0);
         }
     }
 
     /**
-     * Determine if "async" signals are supported.
+     * Get the appropriate timeout for the given job.
+     *
+     * @param  JobsInterface|null $job
+     * @param  WorkerOptions      $options
+     *
+     * @return int
+     */
+    protected function timeoutForJob($job, WorkerOptions $options)
+    {
+        return $job && !is_null($job->timeout()) ? $job->timeout() : $options->timeout;
+    }
+
+    /**
+     * Determine if the daemon should process on this iteration.
+     *
+     * @param  WorkerOptions $options
      *
      * @return bool
      */
-    protected function supportsAsyncSignals()
+    protected function daemonShouldRun(WorkerOptions $options)
     {
-        return version_compare(PHP_VERSION, '7.1.0') >= 0 && extension_loaded('pcntl');
+        return ! (($this->manager->isDownForMaintenance() && ! $options->force) ||
+            $this->paused ||
+            $this->until() === false);
     }
 
     /**
-     * Get the last queue restart timestamp, or null.
+     * Pause the worker for the current loop.
      *
-     * @return int|null
+     * @param WorkerOptions $options
+     * @param int $lastRestart
+     * @return void
      */
-    protected function getTimestampOfLastQueueRestart()
+    protected function pauseWorker(WorkerOptions $options, $lastRestart)
     {
-        if ($this->cache) {
+        $this->sleep($options->sleep > 0 ? $options->sleep : 1);
 
-            return $this->cache->get('ideasbucket_queue:restart');
+        $this->stopIfNecessary($options, $lastRestart);
+    }
+
+    /**
+     * Stop the process if necessary.
+     *
+     * @param WorkerOptions $options
+     * @param int $lastRestart
+     */
+    protected function stopIfNecessary(WorkerOptions $options, $lastRestart)
+    {
+        if ($this->shouldQuit) {
+
+            $this->kill();
         }
+
+        if ($this->memoryExceeded($options->memory)) {
+
+            $this->stop(12);
+
+        } elseif ($this->queueShouldRestart($lastRestart)) {
+
+            $this->stop();
+        }
+    }
+
+    /**
+     * Process the next job on the queue.
+     *
+     * @param  string        $connectionName
+     * @param  string        $queue
+     * @param  WorkerOptions $options
+     */
+    public function runNextJob($connectionName, $queue, WorkerOptions $options)
+    {
+        $job = $this->getNextJob($this->manager->connection($connectionName), $queue);
+
+        // If we're able to pull a job off of the stack, we will process it and then return
+        // from this method. If there is no job on the queue, we will "sleep" the worker
+        // for the specified number of seconds, then keep processing jobs after sleep.
+        if ($job) {
+
+            $this->runJob($job, $connectionName, $options);
+        }
+
+        $this->sleep($options->sleep);
     }
 
     /**
@@ -213,124 +263,10 @@ class Worker
 
         } catch (\Throwable $e) {
 
-            $this->exceptions->report(new FatalThrowableError($e));
+            $this->exceptions->report($e = new FatalThrowableError($e));
+
+            $this->stopWorkerIfLostConnection($e);
         }
-    }
-
-    /**
-     * Register the worker timeout handler (PHP 7.1+).
-     *
-     * @param  JobsInterface|null $job
-     * @param  WorkerOptions      $options
-     */
-    protected function registerTimeoutHandler($job, WorkerOptions $options)
-    {
-        $timeout = $this->timeoutForJob($job, $options);
-
-        if ($timeout > 0 && $this->supportsAsyncSignals()) {
-
-            // We will register a signal handler for the alarm signal so that we can kill this
-            // process if it is running too long because it has frozen. This uses the async
-            // signals supported in recent versions of PHP to accomplish it conveniently.
-            pcntl_signal(SIGALRM, function () {
-                $this->kill(1);
-            });
-
-            pcntl_alarm($timeout + $options->sleep);
-        }
-    }
-
-    /**
-     * Kill the process.
-     *
-     * @param  int $status
-     */
-    public function kill($status = 0)
-    {
-        if (extension_loaded('posix')) {
-
-            posix_kill(getmypid(), SIGKILL);
-        }
-
-        exit($status);
-    }
-
-    /**
-     * Get the appropriate timeout for the given job.
-     *
-     * @param  JobsInterface|null $job
-     * @param  WorkerOptions      $options
-     *
-     * @return int
-     */
-    protected function timeoutForJob($job, WorkerOptions $options)
-    {
-        return $job && !is_null($job->timeout()) ? $job->timeout() : $options->timeout;
-    }
-
-    /**
-     * Determine if the daemon should process on this iteration.
-     *
-     * @param  WorkerOptions $options
-     *
-     * @return bool
-     */
-    protected function daemonShouldRun(WorkerOptions $options)
-    {
-        return (($this->manager->isDownForMaintenance() && !$options->force) ||
-            $this->paused ||
-            $this->until() === false
-        );
-    }
-
-    /**
-     * Pause the worker for the current loop.
-     *
-     * @param WorkerOptions $options
-     * @param int $lastRestart
-     * @return void
-     */
-    protected function pauseWorker(WorkerOptions $options, $lastRestart)
-    {
-        $this->sleep($options->sleep > 0 ? $options->sleep : 1);
-
-        $this->stopIfNecessary($options, $lastRestart);
-    }
-
-    /**
-     * Stop the process if necessary.
-     *
-     * @param WorkerOptions $options
-     * @param int $lastRestart
-     */
-    protected function stopIfNecessary(WorkerOptions $options, $lastRestart)
-    {
-        if ($this->shouldQuit) {
-            $this->kill();
-        }
-        if ($this->memoryExceeded($options->memory)) {
-            $this->stop(12);
-        } elseif ($this->queueShouldRestart($lastRestart)) {
-            $this->stop();
-        }
-    }
-
-    /**
-     * @return bool
-     */
-    protected function until()
-    {
-        return $this->events->dispatch(EventsList::LOOPING, new Event\Looping)->isPropagationStopped();
-    }
-
-    /**
-     * Sleep the script for a given number of seconds.
-     *
-     * @param  int $seconds
-     */
-    public function sleep($seconds)
-    {
-        sleep($seconds);
     }
 
     /**
@@ -343,17 +279,58 @@ class Worker
     protected function runJob($job, $connectionName, WorkerOptions $options)
     {
         try {
-
             $this->process($connectionName, $job, $options);
 
         } catch (\Exception $e) {
 
             $this->exceptions->report($e);
+            $this->stopWorkerIfLostConnection($e);
 
         } catch (\Throwable $e) {
 
-            $this->exceptions->report(new FatalThrowableError($e));
+            $this->exceptions->report($e = new FatalThrowableError($e));
+            $this->stopWorkerIfLostConnection($e);
         }
+    }
+
+    /**
+     * Stop the worker if we have lost connection to a database.
+     *
+     * @param  \Exception  $e
+     * @return void
+     */
+    protected function stopWorkerIfLostConnection($e)
+    {
+        if ($this->causedByLostConnection($e)) {
+
+            $this->shouldQuit = true;
+        }
+    }
+
+    /**
+     * Determine if the given exception was caused by a lost connection.
+     *
+     * @param  \Exception  $e
+     *
+     * @return bool
+     */
+    protected function causedByLostConnection(\Exception $e)
+    {
+        $message = $e->getMessage();
+
+        return StringHelper::contains($message, [
+            'server has gone away',
+            'no connection to the server',
+            'Lost connection',
+            'is dead or not enabled',
+            'Error while sending',
+            'decryption failed or bad record mac',
+            'server closed the connection unexpectedly',
+            'SSL connection has been closed unexpectedly',
+            'Error writing data to the connection',
+            'Resource deadlock avoided',
+            'Transaction() on null',
+        ]);
     }
 
     /**
@@ -394,14 +371,38 @@ class Worker
     }
 
     /**
-     * Raise the before queue job event.
+     * Handle an exception that occurred while the job was running.
      *
      * @param  string        $connectionName
      * @param  JobsInterface $job
+     * @param  WorkerOptions $options
+     * @param  \Exception    $e
+     *
+     * @throws \Exception
      */
-    protected function raiseBeforeJobEvent($connectionName, $job)
+    protected function handleJobException($connectionName, $job, WorkerOptions $options, $e)
     {
-        $this->events->dispatch(EventsList::JOB_PROCESSING, new Event\JobProcessing($connectionName, $job));
+        try {
+
+            // First, we will go ahead and mark the job as failed if it will exceed the maximum
+            // attempts it is allowed to run the next time we process it. If so we will just
+            // go ahead and mark it as failed now so we do not have to release this again.
+            $this->markJobAsFailedIfWillExceedMaxAttempts($connectionName, $job, (int)$options->maxTries, $e);
+
+            $this->raiseExceptionOccurredJobEvent($connectionName, $job, $e);
+
+        } finally {
+
+            // If we catch an exception, we will attempt to release the job back onto the queue
+            // so it is not lost entirely. This'll let the job be retried at a later time by
+            // another listener (or this same one). We will re-throw this exception after.
+            if (! $job->isDeleted() && ! $job->isReleased() && ! $job->hasFailed()) {
+
+                $job->release($options->delay);
+            }
+        }
+
+        throw $e;
     }
 
     /**
@@ -422,11 +423,29 @@ class Worker
             return;
         }
 
-        $exception = new MaxAttemptsExceededException;
-
-        $this->failJob($connectionName, $job, $exception);
+        $this->failJob($connectionName, $job, $exception = new MaxAttemptsExceededException(
+            'A queued job has been attempted too many times. The job may have previously timed out.'
+        ));
 
         throw $exception;
+    }
+
+    /**
+     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
+     *
+     * @param  string        $connectionName
+     * @param  JobsInterface $job
+     * @param  int           $maxTries
+     * @param  \Exception    $e
+     */
+    protected function markJobAsFailedIfWillExceedMaxAttempts($connectionName, $job, $maxTries, $e)
+    {
+        $maxTries = !is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
+
+        if ($maxTries > 0 && $job->attempts() >= $maxTries) {
+
+            $this->failJob($connectionName, $job, $e);
+        }
     }
 
     /**
@@ -458,6 +477,18 @@ class Worker
         }
     }
 
+
+    /**
+     * Raise the before queue job event.
+     *
+     * @param  string        $connectionName
+     * @param  JobsInterface $job
+     */
+    protected function raiseBeforeJobEvent($connectionName, $job)
+    {
+        $this->events->dispatch(EventsList::JOB_PROCESSING, new Event\JobProcessing($connectionName, $job));
+    }
+
     /**
      * Raise the after queue job event.
      *
@@ -470,59 +501,6 @@ class Worker
     }
 
     /**
-     * Handle an exception that occurred while the job was running.
-     *
-     * @param  string        $connectionName
-     * @param  JobsInterface $job
-     * @param  WorkerOptions $options
-     * @param  \Exception    $e
-     *
-     * @throws \Exception
-     */
-    protected function handleJobException($connectionName, $job, WorkerOptions $options, $e)
-    {
-        try {
-
-            // First, we will go ahead and mark the job as failed if it will exceed the maximum
-            // attempts it is allowed to run the next time we process it. If so we will just
-            // go ahead and mark it as failed now so we do not have to release this again.
-            $this->markJobAsFailedIfWillExceedMaxAttempts($connectionName, $job, (int)$options->maxTries, $e);
-
-            $this->raiseExceptionOccurredJobEvent($connectionName, $job, $e);
-
-        } finally {
-
-            // If we catch an exception, we will attempt to release the job back onto the queue
-            // so it is not lost entirely. This'll let the job be retried at a later time by
-            // another listener (or this same one). We will re-throw this exception after.
-            if (!$job->isDeleted()) {
-
-                $job->release($options->delay);
-            }
-        }
-
-        throw $e;
-    }
-
-    /**
-     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
-     *
-     * @param  string        $connectionName
-     * @param  JobsInterface $job
-     * @param  int           $maxTries
-     * @param  \Exception    $e
-     */
-    protected function markJobAsFailedIfWillExceedMaxAttempts($connectionName, $job, $maxTries, $e)
-    {
-        $maxTries = !is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
-
-        if ($maxTries > 0 && $job->attempts() >= $maxTries) {
-
-            $this->failJob($connectionName, $job, $e);
-        }
-    }
-
-    /**
      * Raise the exception occurred queue job event.
      *
      * @param  string        $connectionName
@@ -532,6 +510,69 @@ class Worker
     protected function raiseExceptionOccurredJobEvent($connectionName, $job, $e)
     {
         $this->events->dispatch(EventsList::JOB_EXCEPTION_OCCURRED, new Event\JobExceptionOccurred($connectionName, $job, $e));
+    }
+
+
+    /**
+     * Determine if the queue worker should restart.
+     *
+     * @param  int|null $lastRestart
+     *
+     * @return bool
+     */
+    protected function queueShouldRestart($lastRestart)
+    {
+        return $this->getTimestampOfLastQueueRestart() != $lastRestart;
+    }
+
+
+    /**
+     * Get the last queue restart timestamp, or null.
+     *
+     * @return int|null
+     */
+    protected function getTimestampOfLastQueueRestart()
+    {
+        if ($this->cache) {
+
+            return $this->cache->get('ideasbucket_queue:restart');
+        }
+    }
+
+    /**
+     * Enable async signals for the process.
+     */
+    protected function listenForSignals()
+    {
+        if ($this->supportsAsyncSignals()) {
+
+            pcntl_async_signals(true);
+
+            pcntl_signal(SIGTERM, function () {
+
+                $this->shouldQuit = true;
+            });
+
+            pcntl_signal(SIGUSR2, function () {
+
+                $this->paused = true;
+            });
+
+            pcntl_signal(SIGCONT, function () {
+
+                $this->paused = false;
+            });
+        }
+    }
+
+    /**
+     * Determine if "async" signals are supported.
+     *
+     * @return bool
+     */
+    protected function supportsAsyncSignals()
+    {
+        return version_compare(PHP_VERSION, '7.1.0') >= 0 && extension_loaded('pcntl');
     }
 
     /**
@@ -559,37 +600,28 @@ class Worker
     }
 
     /**
-     * Determine if the queue worker should restart.
+     * Kill the process.
      *
-     * @param  int|null $lastRestart
-     *
-     * @return bool
+     * @param  int $status
      */
-    protected function queueShouldRestart($lastRestart)
+    public function kill($status = 0)
     {
-        return $this->getTimestampOfLastQueueRestart() != $lastRestart;
+        if (extension_loaded('posix')) {
+
+            posix_kill(getmypid(), SIGKILL);
+        }
+
+        exit($status);
     }
 
     /**
-     * Process the next job on the queue.
+     * Sleep the script for a given number of seconds.
      *
-     * @param  string        $connectionName
-     * @param  string        $queue
-     * @param  WorkerOptions $options
+     * @param  int $seconds
      */
-    public function runNextJob($connectionName, $queue, WorkerOptions $options)
+    public function sleep($seconds)
     {
-        $job = $this->getNextJob($this->manager->connection($connectionName), $queue);
-
-        // If we're able to pull a job off of the stack, we will process it and then return
-        // from this method. If there is no job on the queue, we will "sleep" the worker
-        // for the specified number of seconds, then keep processing jobs after sleep.
-        if ($job) {
-
-            $this->runJob($job, $connectionName, $options);
-        }
-
-        $this->sleep($options->sleep);
+        sleep($seconds);
     }
 
     /**
@@ -600,6 +632,34 @@ class Worker
     public function setCache(Cache $cache)
     {
         $this->cache = $cache;
+    }
+
+    /**
+     * @return Manager
+     */
+    public function getManager()
+    {
+        return $this->manager;
+    }
+
+    /**
+     * @param Manager $manager
+     *
+     * @return Worker
+     */
+    public function setManager($manager)
+    {
+        $this->manager = $manager;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function until()
+    {
+        return $this->events->dispatch(EventsList::LOOPING, new Event\Looping)->isPropagationStopped();
     }
 
     /**
