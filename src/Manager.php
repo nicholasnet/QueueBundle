@@ -371,6 +371,6 @@ class Manager implements ContainerAwareInterface
      */
     public function __call($method, $parameters)
     {
-        return $this->connection()->$method(...$parameters);
+        return $this->connection()->{$method}(...$parameters);
     }
 }
