@@ -47,7 +47,7 @@ class RestartCommand extends Command
     {
         if ($this->cache !== null) {
 
-            $this->cache->set('ideasbucket_queue:restart', time());
+            $this->cache->set('ideasbucket_queue_restart', time());
             $output->writeln('Broadcasting queue restart signal.');
 
         } else {
