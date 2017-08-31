@@ -535,7 +535,7 @@ class Worker
     {
         if ($this->cache) {
 
-            return $this->cache->get('ideasbucket_queue:restart');
+            return $this->cache->get('ideasbucket_queue_restart');
         }
     }
 

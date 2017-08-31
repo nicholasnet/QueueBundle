@@ -27,24 +27,19 @@ class SqsJob extends AbstractJob implements JobsInterface
     protected $jobData;
 
     /**
-     * @var string
-     */
-    protected $queueUrl;
-
-    /**
      * Create a new job instance.
      *
      * @param  ContainerInterface $container
      * @param  \Aws\Sqs\SqsClient $sqs
      * @param  array              $jobData
      * @param  string             $connectionName
-     * @param  string             $queueUrl
+     * @param  string             $queue
      */
-    public function __construct(ContainerInterface $container, SqsClient $sqs, array $jobData, $connectionName, $queueUrl)
+    public function __construct(ContainerInterface $container, SqsClient $sqs, array $jobData, $connectionName, $queue)
     {
         $this->sqs = $sqs;
         $this->jobData = $jobData;
-        $this->queueUrl = $queueUrl;
+        $this->queue = $queue;
         $this->container = $container;
         $this->connectionName = $connectionName;
     }
@@ -59,7 +54,7 @@ class SqsJob extends AbstractJob implements JobsInterface
         parent::release($delay);
 
         $this->sqs->changeMessageVisibility([
-            'QueueUrl' => $this->queueUrl,
+            'QueueUrl' => $this->queue,
             'ReceiptHandle' => $this->jobData['ReceiptHandle'],
             'VisibilityTimeout' => $delay,
         ]);
@@ -72,7 +67,7 @@ class SqsJob extends AbstractJob implements JobsInterface
     {
         parent::delete();
 
-        $this->sqs->deleteMessage(['QueueUrl' => $this->queueUrl, 'ReceiptHandle' => $this->jobData['ReceiptHandle']]);
+        $this->sqs->deleteMessage(['QueueUrl' => $this->queue, 'ReceiptHandle' => $this->jobData['ReceiptHandle']]);
     }
 
     /**
