@@ -171,10 +171,10 @@ class Worker
      *
      * @return bool
      */
-    protected function daemonShouldRun(WorkerOptions $options)
+    public function daemonShouldRun(WorkerOptions $options)
     {
         return ! (($this->manager->isDownForMaintenance() && ! $options->force) ||
-            $this->paused ||
+            $this->isPaused() ||
             $this->until() !== false);
     }
 
@@ -660,6 +660,14 @@ class Worker
     protected function until()
     {
         return $this->events->dispatch(EventsList::LOOPING, new Event\Looping)->isPropagationStopped();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isPaused()
+    {
+        return $this->paused;
     }
 
     /**
