@@ -175,7 +175,7 @@ class Worker
     {
         return ! (($this->manager->isDownForMaintenance() && ! $options->force) ||
             $this->paused ||
-            $this->until() === false);
+            $this->until() !== false);
     }
 
     /**
