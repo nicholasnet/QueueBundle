@@ -51,7 +51,7 @@ class CacheAdapter implements CacheInterface
      */
     public function get($key, $default = null)
     {
-        $this->cache->get($key, $default);
+        return $this->cache->get($key, $default);
     }
 
     /**
