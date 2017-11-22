@@ -21,7 +21,7 @@ class RedisQueueTest extends \PHPUnit_Framework_TestCase
         $queue->setContainer($this->getContainer());
 
         $queue->expects($this->once())->method('getRandomId')->will($this->returnValue('foo'));
-        $redis->shouldReceive('rpush')->once()->with('queues:default', '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"id":"foo","attempts":0}');
+        $redis->shouldReceive('rpush')->once()->with('queues:default', '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"timeoutAt":null,"id":"foo","attempts":0}');
         $id = $queue->push('foo', ['data']);
         $this->assertEquals('foo', $id);
     }
@@ -35,7 +35,7 @@ class RedisQueueTest extends \PHPUnit_Framework_TestCase
         $redis->shouldReceive('zadd')->once()->with(
             'queues:default:delayed',
             2,
-            '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"id":"foo","attempts":0}'
+            '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"timeoutAt":null,"id":"foo","attempts":0}'
         );
         $id = $queue->later(1, 'foo', ['data']);
         $this->assertEquals('foo', $id);
@@ -51,7 +51,7 @@ class RedisQueueTest extends \PHPUnit_Framework_TestCase
         $redis->shouldReceive('zadd')->once()->with(
             'queues:default:delayed',
             2,
-            '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"id":"foo","attempts":0}'
+            '{"job":"foo","data":["data"],"maxTries":null,"timeout":null,"timeoutAt":null,"id":"foo","attempts":0}'
         );
         $queue->later($date, 'foo', ['data']);
     }
