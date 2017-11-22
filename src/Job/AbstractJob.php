@@ -202,6 +202,16 @@ abstract class AbstractJob
     }
 
     /**
+     * Get the timestamp indicating when the job should timeout.
+     *
+     * @return int|null
+     */
+    public function timeoutAt()
+    {
+        return !empty($this->payload()['timeoutAt']) ? $this->payload()['timeoutAt'] : null;
+    }
+
+    /**
      * @inheritdoc
      */
     public function getName()

@@ -193,6 +193,8 @@ abstract class AbstractQueue
             $payload['timeout'] = null;
         }
 
+        $payload['timeoutAt'] = $this->getJobExpiration($job);
+
         return $payload;
     }
 
@@ -232,5 +234,50 @@ abstract class AbstractQueue
         $this->container = $container;
 
         return $this;
+    }
+
+    /**
+     * Get the expiration timestamp for an object-based queue handler.
+     *
+     * @param  mixed  $job
+     *
+     * @return mixed
+     */
+    public function getJobExpiration($job)
+    {
+        if (isset($job->timeoutAt)) {
+
+            $timeoutAt = $job->timeoutAt;
+
+        } elseif (method_exists($job, 'getTimeoutAt')) {
+
+            $timeoutAt = $job->getTimeoutAt();
+
+        } else {
+
+            $timeoutAt = null;
+        }
+
+        if (isset($job->retryUntil)) {
+
+            $retryUntil = $job->retryUntil;
+
+        } elseif (method_exists($job, 'getRetryUntil')) {
+
+            $retryUntil = $job->getRetryUntil();
+
+        } else {
+
+            $retryUntil = null;
+        }
+
+        if (empty($retryUntil) && empty($timeoutAt)) {
+
+            return;
+        }
+
+        $expiration = (!empty($timeoutAt)) ? $timeoutAt : $retryUntil;
+
+        return $expiration instanceof \DateTimeInterface ? $expiration->getTimestamp() : $expiration;
     }
 }

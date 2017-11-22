@@ -2,6 +2,7 @@
 
 namespace IdeasBucket\QueueBundle;
 
+use IdeasBucket\QueueBundle\Event\EventsList;
 use IdeasBucket\QueueBundle\Event\JobExceptionOccurred;
 use IdeasBucket\QueueBundle\Event\JobFailed;
 use IdeasBucket\QueueBundle\Event\JobProcessed;
@@ -9,11 +10,12 @@ use IdeasBucket\QueueBundle\Event\JobProcessing;
 use IdeasBucket\QueueBundle\Exception\ErrorHandler;
 use IdeasBucket\QueueBundle\Exception\MaxAttemptsExceededException;
 use IdeasBucket\QueueBundle\Job\JobsInterface;
+use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Mockery as m;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use IdeasBucket\QueueBundle\Event\EventsList;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class WorkerTest
@@ -158,6 +160,91 @@ class WorkerTest extends TestCase
         $this->assertNull($job->failedWith);
     }
 
+    public function testDaemonShouldRunMaintenanceAndForce()
+    {
+        $manager = m::mock(Manager::class)
+                    ->shouldReceive('isDownForMaintenance')
+                    ->andReturn(true)
+                    ->getMock();
+
+        $eventMock = m::mock(Event::class)
+                      ->shouldReceive('isPropagationStopped')
+                      ->andReturn(false)
+                      ->getMock();
+
+        $dispatcher = m::mock(EventDispatcherInterface::class)
+                       ->shouldReceive('dispatch')
+                       ->andReturn($eventMock)
+                       ->getMock();
+
+        $exceptionHandler = m::mock(ErrorHandler::class)->makePartial();
+
+        /** @var Worker|m\Mock $worker */
+        $worker = m::mock(Worker::class, [$manager, $dispatcher, $exceptionHandler])
+                   ->makePartial()
+                   ->shouldReceive('isPaused')
+                   ->andReturn(false)
+                   ->getMock();
+
+        $workerOptions = new WorkerOptions();
+
+        $bool = $worker->daemonShouldRun($workerOptions);
+
+        $this->assertFalse($bool);
+
+        // Now test forced
+        $workerOptions = new WorkerOptions();
+        $workerOptions->force = true;
+
+        $bool = $worker->daemonShouldRun($workerOptions);
+        $this->assertTrue($bool);
+    }
+
+    public function testDaemonShouldRunUntilAndPaused(){
+        $manager = m::mock(Manager::class)
+                    ->shouldReceive('isDownForMaintenance')
+                    ->andReturn(false)
+                    ->getMock();
+
+        $eventMock = m::mock(Event::class)
+                      ->shouldReceive('isPropagationStopped')
+                      ->andReturnValues([true, false])
+                      ->getMock();
+
+        $dispatcher = m::mock(EventDispatcherInterface::class)
+                       ->shouldReceive('dispatch')
+                       ->andReturn($eventMock)
+                       ->getMock();
+
+        $exceptionHandler = m::mock(ErrorHandler::class)->makePartial();
+
+        /** @var Worker|m\Mock $worker */
+        $worker = m::mock(Worker::class, [$manager, $dispatcher, $exceptionHandler])
+                   ->makePartial()
+                   ->shouldReceive('isPaused')
+                   ->andReturn(false)
+                   ->getMock();
+
+        $workerOptions = new WorkerOptions();
+
+        // Run once with isPropagationStopped = false
+        $bool = $worker->daemonShouldRun($workerOptions);
+        $this->assertFalse($bool);
+
+        // Run with isPropagationStopped = true
+        $bool = $worker->daemonShouldRun($workerOptions);
+        $this->assertTrue($bool);
+
+        $worker = m::mock(Worker::class, [$manager, $dispatcher, $exceptionHandler])
+                   ->makePartial()
+                   ->shouldReceive('isPaused')
+                   ->andReturn(true)
+                   ->getMock();
+
+        $bool = $worker->daemonShouldRun($workerOptions);
+        $this->assertFalse($bool);
+    }
+
     /**
      * Helpers...
      */
@@ -263,6 +350,11 @@ class WorkerFakeJob implements JobsInterface
     {
         $this->callback = $callback ?: function () {
         };
+    }
+
+    public function timeoutAt()
+    {
+
     }
 
     public function fire()

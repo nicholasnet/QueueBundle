@@ -69,6 +69,13 @@ interface JobsInterface
     public function timeout();
 
     /**
+     * Get the timestamp indicating when the job should timeout.
+     *
+     * @return int|null
+     */
+    public function timeoutAt();
+
+    /**
      * Get the name of the queued job class.
      *
      * @return string
