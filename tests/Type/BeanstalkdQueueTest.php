@@ -28,7 +28,7 @@ class BeanstalkdQueueTest extends TestCase
 
         $pheanstalk->shouldReceive('useTube')->once()->with('stack')->andReturn($pheanstalk);
         $pheanstalk->shouldReceive('useTube')->once()->with('default')->andReturn($pheanstalk);
-        $pheanstalk->shouldReceive('put')->twice()->with(json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => null, 'timeout' => null]), 1024, 0, 60);
+        $pheanstalk->shouldReceive('put')->twice()->with(json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => null, 'timeout' => null, 'timeoutAt' => null]), 1024, 0, 60);
         $queue->push('foo', ['data'], 'stack');
         $queue->push('foo', ['data']);
     }
@@ -43,7 +43,7 @@ class BeanstalkdQueueTest extends TestCase
         $pheanstalk = $queue->getPheanstalk();
         $pheanstalk->shouldReceive('useTube')->once()->with('stack')->andReturn($pheanstalk);
         $pheanstalk->shouldReceive('useTube')->once()->with('default')->andReturn($pheanstalk);
-        $pheanstalk->shouldReceive('put')->twice()->with(json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => 1, 'timeout' => 1]), \Pheanstalk\Pheanstalk::DEFAULT_PRIORITY, 5, \Pheanstalk\Pheanstalk::DEFAULT_TTR);
+        $pheanstalk->shouldReceive('put')->twice()->with(json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => 1, 'timeout' => 1, 'timeoutAt' => null]), \Pheanstalk\Pheanstalk::DEFAULT_PRIORITY, 5, \Pheanstalk\Pheanstalk::DEFAULT_TTR);
         $queue->later(5, 'foo', ['data'], 'stack');
         $queue->later(5, 'foo', ['data']);
     }

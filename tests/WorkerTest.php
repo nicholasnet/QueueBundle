@@ -352,6 +352,11 @@ class WorkerFakeJob implements JobsInterface
         };
     }
 
+    public function timeoutAt()
+    {
+
+    }
+
     public function fire()
     {
         $this->fired = true;

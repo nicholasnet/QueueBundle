@@ -66,7 +66,7 @@ class RetryCommand extends Command
 
             $ids = $input->getArgument('id');
 
-            $failedJobs = ($ids === 'all') ? $this->failed->findAll() : $this->failed->findByIds($ids);
+            $failedJobs = (in_array('all', $ids)) ? $this->failed->findAll() : $this->failed->findByIds($ids);
 
             // If entity is found.
             if (!empty($failedJobs)) {

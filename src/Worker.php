@@ -146,8 +146,9 @@ class Worker
                 $this->kill(1);
             });
 
-            $timeout = $this->timeoutForJob($job, $options);
-            pcntl_alarm($timeout > 0 ? $timeout + $options->sleep : 0);
+            pcntl_alarm(
+                max($this->timeoutForJob($job, $options), 0)
+            );
         }
     }
 
@@ -260,11 +261,11 @@ class Worker
         } catch (\Exception $e) {
 
             $this->exceptions->report($e);
+            $this->stopWorkerIfLostConnection($e);
 
         } catch (\Throwable $e) {
 
             $this->exceptions->report($e = new FatalThrowableError($e));
-
             $this->stopWorkerIfLostConnection($e);
         }
     }
@@ -417,8 +418,14 @@ class Worker
     protected function markJobAsFailedIfAlreadyExceedsMaxAttempts($connectionName, $job, $maxTries)
     {
         $maxTries = !is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
+        $timeoutAt = $job->timeout();
 
-        if ($maxTries === 0 || $job->attempts() <= $maxTries) {
+        if ($timeoutAt && (new \DateTimeImmutable)->getTimestamp() <= $timeoutAt) {
+
+            return;
+        }
+
+        if (! $timeoutAt && ($maxTries === 0 || $job->attempts() <= $maxTries)) {
 
             return;
         }
@@ -440,7 +447,12 @@ class Worker
      */
     protected function markJobAsFailedIfWillExceedMaxAttempts($connectionName, $job, $maxTries, $e)
     {
-        $maxTries = !is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
+        $maxTries = ! is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
+
+        if ($job->timeoutAt() && $job->timeoutAt() <= (new \DateTimeImmutable)->getTimestamp()) {
+
+            $this->failJob($connectionName, $job, $e);
+        }
 
         if ($maxTries > 0 && $job->attempts() >= $maxTries) {
 
@@ -606,6 +618,8 @@ class Worker
      */
     public function kill($status = 0)
     {
+        $this->events->dispatch(EventsList::WORKER_STOPPING, new Event\WorkerStopping);
+
         if (extension_loaded('posix')) {
 
             posix_kill(getmypid(), SIGKILL);
