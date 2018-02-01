@@ -21,10 +21,12 @@ class {{className}}Repository  extends EntityRepository implements RepositoryInt
         /** @var EntityInterface $entity */
         $entity = new {{className}};
 
+        $payload = json_decode($rawBody, true);
+
         $entity->setConnection($connectionName)
                ->setQueue($queue)
                ->setException($exception->getMessage())
-               ->setPayload($rawBody)
+               ->setPayload($payload)
                ->setFailedAt(new \DateTime);
 
         $em = $this->getEntityManager();
