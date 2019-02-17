@@ -418,7 +418,7 @@ class Worker
     protected function markJobAsFailedIfAlreadyExceedsMaxAttempts($connectionName, $job, $maxTries)
     {
         $maxTries = !is_null($job->maxTries()) ? $job->maxTries() : $maxTries;
-        $timeoutAt = $job->timeout();
+        $timeoutAt = $job->timeoutAt();
 
         if ($timeoutAt && (new \DateTimeImmutable)->getTimestamp() <= $timeoutAt) {
 
